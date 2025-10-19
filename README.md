@@ -2,7 +2,7 @@
 
 The code and key intermediate files in this repository 
 
-Pan-genomic reclassification of Faecalibacterium prausnitzii sensu lato reveals F. longum as a dominant, functionally distinct, and health-associated gut anaerobe. Reference click here
+Pan-genomic reclassification of *Faecalibacterium prausnitzii* sensu lato reveals *F. longum* as a dominant, functionally distinct, and health-associated gut anaerobe. Reference click here
 
 Our work has conducted a taxonomic revision of species within *Faecalibacterium*, followed by functional harmonization under the newly established classification framework.
 
@@ -19,6 +19,8 @@ Our work has conducted a taxonomic revision of species within *Faecalibacterium*
 ## Organization
 
 * 00_analysis_FUN contains scripts of all pipeline function.
+
+* 00_FUN contains R scripts of all function.
 
 * 01_data contains data for analysis and plot.
 
