@@ -1,0 +1,6 @@
+Status	Bin_ID	Level	Complete	Fragmented	Duplicated	Reason
+Fail	OF04-11AC	genomes	86.3	11.3	0.0	Complete <90%; Fragmented >10%
+Fail	scaffold_AF26-9	genomes	79.8	16.1	0.8	Complete <90%; Fragmented >10%
+Fail	scaffold_AF31-10AC	genomes	81.5	11.3	0.0	Complete <90%; Fragmented >10%
+Fail	scaffold_AM36-22BH	genomes	79.8	17.7	0.0	Complete <90%; Fragmented >10%
+Fail	scaffold_TF07-33	genomes	83.8	9.7	3.2	Complete <90%
