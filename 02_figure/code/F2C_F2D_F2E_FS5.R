@@ -6,7 +6,7 @@ library(stringr)
 library(patchwork)
 library(cowplot)
 
-# 定义第一类CSV处理函数（基础文件：un19和un11）
+# 定义第一类CSV处理函数
 generate_plot <- function(file_path, strain_title, is_first) {
   data <- read.csv(file_path, skip = 1, header = TRUE)
   
@@ -25,7 +25,7 @@ generate_plot <- function(file_path, strain_title, is_first) {
     select(-1) %>%
     mutate(across(everything(), as.numeric))
   
-  # 颜色分类逻辑
+  # 颜色分类
   strain_colors <- character(nrow(data_numeric))
   for (i in 1:nrow(data_numeric)) {
     row_data <- data_numeric[i, ]
@@ -84,7 +84,7 @@ generate_plot <- function(file_path, strain_title, is_first) {
   # 判断是否为基础文件组最后一个图
   is_last_base <- strain_title == "Unknown_11"
   
-  # 绘图（删除基础组x轴标题）
+  # 绘图
   p <- ggplot(plot_data, aes(x = Gene, y = Strain, fill = Color)) +
     geom_tile(color = "gray30", linewidth = 0.2) +
     scale_fill_manual(values = c(
@@ -97,21 +97,21 @@ generate_plot <- function(file_path, strain_title, is_first) {
     scale_x_discrete(breaks = target_genes, labels = gene_labels) +
     labs(
       y = strain_title,
-      x = if (is_last_base) "" else ""  # 删除基础组x轴标题
+      x = if (is_last_base) "" else ""
     ) +
     theme_minimal(base_size = 10) +
     theme(
       text = element_text(family = "SimHei"),
       axis.text.x = if (is_last_base) {
-        element_text(angle = 90, hjust = 1, vjust = 0.5, size = 8)  # 显示横坐标标签
+        element_text(angle = 90, hjust = 1, vjust = 0.5, size = 8)
       } else {
         element_blank()
       },
       axis.ticks.x = if (is_last_base) element_line() else element_blank(),
-      axis.title.x = if (is_last_base) element_blank() else element_blank(),  # 不显示x轴标题
+      axis.title.x = if (is_last_base) element_blank() else element_blank(),
       axis.text.y = element_text(size = 4, angle = 0, hjust = 1),
       axis.title.y = element_text(size = 7, angle = 0, vjust = 0.5, hjust = 1),
-      legend.position = if (is_first) "bottom" else "none",  # 基础组第一个图显示图例
+      legend.position = if (is_first) "bottom" else "none",
       panel.grid = element_blank(),
       plot.margin = margin(0, 5.5, 0, 5.5, "pt")
     )
@@ -119,7 +119,7 @@ generate_plot <- function(file_path, strain_title, is_first) {
   return(list(plot = p, n = n_strains))
 }
 
-# 定义第二类CSV处理函数（特殊文件：un6和un12）
+# 定义第二类CSV处理函数
 generate_special_plot <- function(file_path, strain_title, is_first_special) {
   # 目标基因顺序
   desired_genes <- c(
@@ -237,7 +237,7 @@ generate_special_plot <- function(file_path, strain_title, is_first_special) {
     ) +
     labs(
       y = strain_title,
-      x = if (is_last_special) "Target Genes" else ""  # 修改为Target Genes
+      x = if (is_last_special) "Target Genes" else ""
     ) +
     theme_minimal(base_size = 10) +
     theme(
@@ -251,76 +251,10 @@ generate_special_plot <- function(file_path, strain_title, is_first_special) {
       axis.title.y = element_text(size = 7, angle = 0, vjust = 0.5, hjust = 1),
       axis.ticks.x = if (is_last_special) element_line() else element_blank(),
       axis.title.x = if (is_last_special) element_text(size = 10) else element_blank(),
-      legend.position = if (is_first_special) "bottom" else "none",  # 特殊组第一个图显示图例
+      legend.position = if (is_first_special) "bottom" else "none",
       panel.grid = element_blank(),
       plot.margin = margin(0, 5.5, 0, 5.5, "pt")
     )
   
   return(list(plot = p, n = n_strains))
 }
-
-# ----------------------
-# 第一部分：处理基础CSV文件（un19和un11）
-# ----------------------
-files <- c("output_un19_1.csv", "output_un11_1.csv")
-titles <- c("Unknown_19", "Unknown_11")
-is_first_flags <- c(TRUE, FALSE)  # 基础组第一个图显示图例
-
-base_results <- mapply(
-  generate_plot, 
-  file_path = files, 
-  strain_title = titles, 
-  is_first = is_first_flags, 
-  SIMPLIFY = FALSE
-)
-base_plots <- lapply(base_results, function(x) x$plot)
-n_base_strains <- sapply(base_results, function(x) x$n)
-
-# 提取基础组图例
-base_legend <- get_legend(base_plots[[1]] + guides(fill = guide_legend(nrow = 1)))
-base_plots[[1]] <- base_plots[[1]] + theme(legend.position = "none")
-
-
-# ----------------------
-# 第二部分：处理特殊CSV文件（un6和un12）
-# ----------------------
-special_files <- c("output_un6.csv", "output_un12.csv")
-special_titles <- c("Unknown_6", "Unknown_12")
-is_first_special_flags <- c(TRUE, FALSE)  # 特殊组第一个图显示图例
-
-special_results <- mapply(
-  generate_special_plot, 
-  file_path = special_files, 
-  strain_title = special_titles, 
-  is_first_special = is_first_special_flags, 
-  SIMPLIFY = FALSE
-)
-special_plots <- lapply(special_results, function(x) x$plot)
-n_special_strains <- sapply(special_results, function(x) x$n)
-
-# 提取特殊组图例
-special_legend <- get_legend(special_plots[[1]] + guides(fill = guide_legend(nrow = 1)))
-special_plots[[1]] <- special_plots[[1]] + theme(legend.position = "none")
-
-
-# ----------------------
-# 组合所有图形
-# ----------------------
-all_plots <- c(base_plots, special_plots)
-
-# 计算高度比例
-total_strains <- sum(n_base_strains) + sum(n_special_strains)
-plot_heights <- c(n_base_strains, n_special_strains) / total_strains * 0.8
-legend_height <- 0.1
-all_heights <- c(plot_heights, legend_height, legend_height)
-
-# 组合图形
-final_plot <- wrap_plots(
-  c(all_plots, list(base_legend, special_legend)),
-  ncol = 1, 
-  heights = all_heights
-) & theme(plot.margin = margin(0, 0, 0, 0, "pt"))
-
-# 显示并保存图形
-print(final_plot)
-# ggsave("final_combined_plot.png", final_plot, width = 14, height = 12, dpi = 300)

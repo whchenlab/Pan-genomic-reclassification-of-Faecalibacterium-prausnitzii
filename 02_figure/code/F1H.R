@@ -1,7 +1,3 @@
-# 设置工作目录
-setwd("C:/Users/kurty/Desktop")
-
-# 加载必要的包
 library(tidyverse)
 library(ggplot2)
 library(stringr)
@@ -83,16 +79,16 @@ broad_category_colors <- c(
 )
 
 # --------------------------
-# 2. 核心组处理（直接使用og_id列）
+# 2. 核心组处理
 # --------------------------
-# 处理数据（假设数据框已包含og_id列，直接去重）
+# 处理数据
 eggnog_FP <- eggnog_FP %>% distinct(og_id, .keep_all = TRUE)  # 直接按og_id去重
 eggnog_FD <- eggnog_FD %>% distinct(og_id, .keep_all = TRUE)
 eggnog_FL <- eggnog_FL %>% distinct(og_id, .keep_all = TRUE)
 eggnog_SHELL <- eggnog_SHELL %>% distinct(og_id, .keep_all = TRUE)
 eggnog_CLOUD <- eggnog_CLOUD %>% distinct(og_id, .keep_all = TRUE)
 
-# 定义基因集类型（基于og_id匹配）
+# 定义基因集类型
 common_core_genes <- eggnog_FP %>% filter(og_id %in% eggnog_FD$og_id & og_id %in% eggnog_FL$og_id) %>% mutate(Core_Type = "Common_Core")
 common_shell_genes <- eggnog_SHELL %>% mutate(Core_Type = "Common_Shell")
 common_cloud_genes <- eggnog_CLOUD %>% mutate(Core_Type = "Common_Cloud")
@@ -111,7 +107,7 @@ all_core_genes <- bind_rows(
 )
 
 # --------------------------
-# 3. 统计COG占比（修复Core_Type识别问题）
+# 3. 统计COG占比
 # --------------------------
 count_cog_categories <- function(df) {
   df %>%
@@ -126,27 +122,27 @@ count_cog_categories <- function(df) {
     ) %>%
     group_by(Core_Type, COG_Letters) %>%
     count() %>%
-    ungroup() %>%  # 关键修复：解除分组状态，确保complete能识别Core_Type
-    complete(Core_Type, COG_Letters, fill = list(n = 0)) %>%  # 补全所有组合，缺失值为0
+    ungroup() %>%
+    complete(Core_Type, COG_Letters, fill = list(n = 0)) %>%
     left_join(cog_description, by = c("COG_Letters" = "Cat")) %>%
     rename(COG_Category = COG_Letters, Count = n)
 }
 
-# 重新计算COG计数（无Core_Type找不到的错误）
+# 重新计算COG计数
 cog_counts <- count_cog_categories(all_core_genes)
 
-# 计算每个基因集的总基因数（取消分组避免警告）
+# 计算每个基因集的总基因数
 total_genes_per_core <- all_core_genes %>% 
   group_by(Core_Type) %>% 
   distinct(og_id) %>% 
-  summarise(Total = n(), .groups = "drop")  # 显式取消分组
+  summarise(Total = n(), .groups = "drop")
 
-# 计算比例并确保无缺失值
+# 计算比例，确保无缺失值
 cog_proportions <- cog_counts %>%
   left_join(total_genes_per_core, by = "Core_Type") %>%
   mutate(
     Proportion = Count / Total * 100,
-    Proportion = ifelse(is.na(Proportion), 0, Proportion)  # 确保0值显示
+    Proportion = ifelse(is.na(Proportion), 0, Proportion)
   ) %>%
   select(Core_Type, Description, BroadCategory, Proportion)
 
@@ -156,12 +152,12 @@ cog_proportions$Core_Type <- factor(cog_proportions$Core_Type, levels = core_ord
 
 broad_category_summary <- cog_proportions %>%
   group_by(Core_Type, BroadCategory) %>%
-  summarise(TotalProportion = sum(Proportion), .groups = "drop")  # 取消分组
+  summarise(TotalProportion = sum(Proportion), .groups = "drop")
 
 # --------------------------
 # 4. 绘图元素准备
 # --------------------------
-# 转换为宽格式用于聚类（确保缺失值补0）
+# 转换为宽格式用于聚类
 heatmap_data_wide <- cog_proportions %>%
   select(Core_Type, Description, Proportion) %>%
   pivot_wider(names_from = Core_Type, values_from = Proportion, values_fill = 0) %>%
@@ -190,7 +186,7 @@ dend_plot <- ggplot(segment(dend_data)) +
   theme(plot.margin = unit(c(0,0,0,0), "mm"))
 dend_grob <- ggplotGrob(dend_plot)
 
-# 热图（带0.0%-50.0%颜色图例）
+# 热图（0.0%-50.0%颜色图例）
 heatmap_plot <- ggplot(cog_proportions, aes(x = Core_Type, y = Description, fill = Proportion)) +
   geom_tile(color = "white", linewidth = 0.5) +
   geom_text(aes(label = sprintf("%.1f%%", Proportion)), size = 3, color = "black") +
@@ -215,7 +211,7 @@ heatmap_plot <- ggplot(cog_proportions, aes(x = Core_Type, y = Description, fill
 
 # 提取热图颜色图例
 heatmap_legend <- get_legend(heatmap_plot)
-heatmap_plot <- heatmap_plot + theme(legend.position = "none")  # 隐藏热图中的图例
+heatmap_plot <- heatmap_plot + theme(legend.position = "none")
 
 # 左侧颜色块
 category_legend <- ggplot(color_data, aes(x = 1, y = Description, fill = BroadCategory)) +
@@ -283,7 +279,7 @@ legend_x <- 0.06
 legend_start_y <- 0.95
 legend_gap <- 0.03
 
-# 热图颜色图例参数（可调整）
+# 热图颜色图例参数
 heatmap_legend_x <- 0.1    # 图例x坐标
 heatmap_legend_y <- 0.15    # 图例y坐标
 heatmap_legend_width <- 0.08  # 图例宽度

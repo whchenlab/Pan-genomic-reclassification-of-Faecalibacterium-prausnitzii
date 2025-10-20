@@ -1,97 +1,124 @@
-# 读取数据，更改文件路径
-ani <- read.table("ani_matrix_genus.txt", sep = "\t")
+library(ggplot2)
+library(dplyr)
 
-# 加载所需库
-library(tidyr)
-library(pheatmap)
-library(RColorBrewer)
+# 1. 数据预处理
+strain_cols <- 15:ncol(matrix)
+presence_matrix <- matrix[, strain_cols, drop = FALSE]
+# 转换为存在/缺失矩阵
+presence_matrix[presence_matrix != "" & !is.na(presence_matrix)] <- 1
+presence_matrix[presence_matrix == "" | is.na(presence_matrix)] <- 0
+presence_matrix <- as.data.frame(lapply(presence_matrix, as.numeric))
+# 计算基因出现次数和总菌株数
+gene_counts <- rowSums(presence_matrix)
+n_genomes <- ncol(presence_matrix)
 
-# 长表转宽表，处理列
-ani_t <- ani[, -c(4, 5)]  # 移除不需要的列
-ani_long <- ani_t %>%
-  spread(key = V1, value = V3)  # 转换为宽表格式
+# 2. 基因类型统计（固定顺序，包含基因数量）
+pangenome_stats <- data.frame(
+  category = factor(
+    c("core", "softcore", "shell", "cloud"),
+    levels = c("core", "softcore", "shell", "cloud")
+  ),
+  count = c(
+    sum(gene_counts >= 0.95 * n_genomes),
+    sum(gene_counts >= 0.94 * n_genomes & gene_counts < 0.95 * n_genomes),
+    sum(gene_counts >= 0.15 * n_genomes & gene_counts < 0.94 * n_genomes),
+    sum(gene_counts < 0.15 * n_genomes)
+  ),
+  strain_range = c(
+    paste0("≥", round(0.95 * n_genomes), " strains"),
+    paste0(round(0.94 * n_genomes), "–", round(0.95 * n_genomes), " strains"),
+    paste0(round(0.15 * n_genomes), "–", round(0.94 * n_genomes), " strains"),
+    paste0("<", round(0.15 * n_genomes), " strains")
+  )
+) %>%
+  # 组合图例文本（基因类型 + 菌株范围 + 基因数量）
+  mutate(
+    legend_text = paste0(
+      category, "\n",          # 基因类型
+      strain_range, "\n",      # 菌株范围
+      "n=", count              # 基因数量
+    )
+  )
 
-# 设置行名并清理名称（去除.fna后缀）
-row.names(ani_long) <- ani_long$V2
-ani_long$V2 <- NULL
-rownames(ani_long) <- gsub(".fna", "", rownames(ani_long))
-colnames(ani_long) <- gsub(".fna", "", colnames(ani_long))
+# 3. 饼图参数
+pie_x <- 0.5    # 饼图中心x坐标（0-1）
+pie_y <- 0.55   # 饼图中心y坐标（0-1）
+pie_r <- 0.5    # 饼图半径
 
-# 定义函数：根据菌株名前缀获取对应的typestrain名称
-get_typestrain_name <- function(name) {
-  if (startsWith(name, "A2165")) {
-    return("F.duncaniae")
-  } else if (startsWith(name, "GCA_036632915")) {
-    return("F.taiwanense")
-  } else if (startsWith(name, "APC922_41-1")) {
-    return("F.hattorii")
-  } else if (startsWith(name, "CLAJMH7B.combined")) {
-    return("F.faecis")
-  } else if (startsWith(name, "CLAAAH175.combined")) {
-    return("F.tardum")
-  } else if (startsWith(name, "CLAAAH281.combined")) {
-    return("F.intestinale")
-  } else if (startsWith(name, "scaffold_CM04-06A")) {
-    return("F.longum")
-  } else if (startsWith(name, "AF52-21")) {
-    return("F.butyricigenerans")
-  } else if (startsWith(name, "ATCC_27768")) {
-    return("F.prausnitzii")
-  } else if (startsWith(name, "F.wellingii_HTF-F")) {
-    return("F.wellingii")
-  } else if (startsWith(name, "F.gallinarum-JCM-17207")) {
-    return("F.gallinarum")
-  } else {
-    return(NA)  # 非typestrain返回NA
-  }
-}
-
-# 筛选出所有typestrain的名称
-all_names <- union(rownames(ani_long), colnames(ani_long))
-typestrain_flags <- !is.na(sapply(all_names, get_typestrain_name))
-typestrain_names <- all_names[typestrain_flags]
-
-# 提取仅包含typestrain的矩阵
-ani_typestrain <- ani_long[
-  rownames(ani_long) %in% typestrain_names,
-  colnames(ani_long) %in% typestrain_names
-]
-
-# 转换为矩阵格式以便处理
-ani_typestrain_mat <- as.matrix(ani_typestrain)
-
-# 处理双相记录不一致：取对称位置的较高值
-ani_typestrain_mat <- pmax(ani_typestrain_mat, t(ani_typestrain_mat))
-
-# 替换行名和列名为对应的typestrain名称
-name_mapping <- sapply(rownames(ani_typestrain_mat), get_typestrain_name)
-rownames(ani_typestrain_mat) <- name_mapping
-colnames(ani_typestrain_mat) <- name_mapping
-
-# 准备热图参数
-heatmap_colors <- colorRampPalette(brewer.pal(9, "Reds"))(100)
-
-# 处理显示数值：只显示大于95的值
-ani_display <- round(ani_typestrain_mat, 1)
-ani_display[ani_display < 95] <- NA
-display_numbers_matrix <- ani_display
-display_numbers_matrix[is.na(display_numbers_matrix)] <- ""
-
-# 绘制并保存热图
-pdf("ANIheatmap_Typestrain.pdf", width = 8, height = 6)
-pheatmap(ani_typestrain_mat, 
-         cluster_rows = TRUE, 
-         cluster_cols = TRUE, 
-         fontsize_row = 8, 
-         fontsize_col = 8,
-         color = heatmap_colors,
-         main = "ANI Matrix between Faecalibacterium typestrains",
-         display_numbers = display_numbers_matrix,
-         number_color = "black",
-         cellwidth = 20, 
-         cellheight = 20,
-         border_color = NA,
-         treeheight_row = 30,
-         treeheight_col = 30
+# 4. 定义高区分度颜色方案
+pie_colors <- c(
+  "#e41a1c",  # 红色（core）
+  "#4daf4a",  # 绿色（softcore）
+  "#377eb8",  # 蓝色（shell）
+  "#984ea3"   # 紫色（cloud）
 )
-dev.off()
+
+# 5. 绘制频率直方图（主图）
+p <- ggplot(data.frame(gene_counts), aes(x = gene_counts)) +
+  geom_histogram(
+    binwidth = 1,
+    fill = "#f0f0f0",
+    color = "black",
+    alpha = 0.7
+  ) +
+  # 图例显示完整信息（类型+范围+数量）
+  scale_fill_manual(
+    values = pie_colors,
+    name = "Gene Categories",
+    labels = pangenome_stats$legend_text
+  ) +
+  labs(
+    x = "Number of genomes with gene",
+    y = "Number of genes",
+    title = "Pangenome Distribution with Pie Chart"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    legend.position = "right",
+    legend.key = element_rect(fill = NA),
+    legend.key.size = unit(1.5, "cm"),
+    legend.title = element_text(size = 10, face = "bold"),
+    legend.text = element_text(size = 8, lineheight = 1.2)
+  )
+
+# 6. 计算饼图坐标
+x_lim <- layer_scales(p)$x$get_limits()
+y_lim <- layer_scales(p)$y$get_limits()
+x_length <- x_lim[2] - x_lim[1]
+y_length <- y_lim[2] - y_lim[1]
+aspect_ratio <- y_length / x_length
+
+pie_x_actual <- x_lim[1] + pie_x * x_length
+pie_y_actual <- y_lim[1] + pie_y * y_length
+pie_r_actual <- pie_r * x_length
+
+# 7. 创建饼图
+pie_plot <- ggplot(pangenome_stats, aes(x = 0, y = count, fill = category)) +
+  geom_col(width = 1, color = "white", size = 0.7) +
+  coord_polar("y", start = 0) +
+  xlim(-1, 1) +
+  ylim(0, sum(pangenome_stats$count)) +
+  scale_fill_manual(values = pie_colors, guide = "none") +
+  theme_void()
+
+# 8. 嵌入饼图到主图
+pie_grob <- ggplotGrob(pie_plot)
+p <- p + annotation_custom(
+  grob = pie_grob,
+  xmin = pie_x_actual - pie_r_actual,
+  xmax = pie_x_actual + pie_r_actual,
+  ymin = pie_y_actual - pie_r_actual * aspect_ratio,
+  ymax = pie_y_actual + pie_r_actual * aspect_ratio
+)
+
+# 9. 图例显示
+p <- p + geom_point(
+  data = pangenome_stats,
+  aes(x = -Inf, y = -Inf, fill = category),
+  shape = 21,
+  size = 6,
+  color = "black",
+  show.legend = TRUE
+)
+

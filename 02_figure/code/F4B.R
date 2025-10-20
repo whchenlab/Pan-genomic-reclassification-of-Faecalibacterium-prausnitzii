@@ -1,11 +1,11 @@
 library(ggplot2)
 library(reshape2)
 library(dplyr)
-library(gridExtra)  # 用于组合图形
-library(ggpubr)     # 提供get_legend函数
-library(grid)       # 提供textGrob函数
+library(gridExtra)
+library(ggpubr)
+library(grid)
 
-# 定义颜色方案（保持一致性）
+# 定义颜色方案
 col.scheme.heatmap <- c('#F7FBFF', 'steelblue1', '#08306B')
 
 # 函数：创建混淆矩阵并绘制热图
@@ -26,7 +26,7 @@ plot_confusion_matrix <- function(data, dataset_name) {
                     varnames = c("True Class", "Predicted Class"), 
                     value.name = "Count")
   
-  # 确定文字颜色阈值（使用最大值的一半）
+  # 确定文字颜色阈值
   max_count <- max(matrix_data)
   text_threshold <- ifelse(max_count == 0, 0, max_count / 2)
   
@@ -36,7 +36,7 @@ plot_confusion_matrix <- function(data, dataset_name) {
     geom_text(aes(label = Count), 
               color = ifelse(df_counts$Count > text_threshold, "white", "black"),
               size = 4, fontface = "bold") +
-    scale_fill_gradientn(colours = col.scheme.heatmap, limits = c(0, 1740)) +  # 统一颜色范围
+    scale_fill_gradientn(colours = col.scheme.heatmap, limits = c(0, 1740)) + 
     labs(
       title = dataset_name,
       x = "Predicted Class",
@@ -50,7 +50,7 @@ plot_confusion_matrix <- function(data, dataset_name) {
       axis.text.y = element_text(size = 8, face = "italic"),
       axis.title.x = element_text(size = 9),
       axis.title.y = element_text(size = 9),
-      legend.position = "none",  # 单个图不显示图例
+      legend.position = "none",
       panel.grid = element_blank(),
       plot.margin = unit(c(0.3, 0.3, 0.3, 0.3), "cm")
     )
@@ -79,7 +79,7 @@ legend <- get_legend(
 # 组合四个子图
 subplots <- arrangeGrob(p1, p2, p3, p4, ncol = 2)
 
-# 创建大标题文本（使用grid包的textGrob函数）
+# 创建大标题文本
 main_title <- textGrob(
   "Genus-Level Classification Performance for Faecalibacterium",
   gp = gpar(fontface = "bold", fontsize = 14)
@@ -91,7 +91,7 @@ combined_plot <- grid.arrange(
   subplots,
   legend,
   nrow = 3,
-  heights = c(0.5, 10, 1)  # 调整各部分高度比例
+  heights = c(0.5, 10, 1)
 )
 
 # 显示组合图

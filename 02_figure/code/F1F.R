@@ -1,36 +1,27 @@
-# 设置工作目录
-setwd("C:/Users/kurty/Desktop")
-
-# 加载必要的包
 library(ape)
 library(ggtree)
 library(ggplot2)
 
+# 绘制进化树
 # 参数设置
-tree_file <- "mytree.newick"  # 进化树文件路径
-output_file <- "phylogenetic_tree_with_labels.pdf"  # 输出PDF文件名
-label_size <- 3  # 菌株名标签大小，可根据需要调整
-tree_width <- 10  # 图形宽度（英寸）
-tree_height <- 8  # 图形高度（英寸），菌株多可增大
-
-# 读取进化树
+tree_file <- "mytree.newick"  # 进化树
+output_file <- "phylogenetic_tree_with_labels.pdf"
+label_size <- 3
+tree_width <- 10
+tree_height <- 8
+# 读取绘图
 tree <- read.tree(tree_file)
-
-# 绘制进化树并显示菌株名
 tree_plot <- ggtree(tree) +
   theme_tree() +
-  # 添加菌株名标签，align=TRUE确保标签对齐
+  # 添加菌株名
   geom_tiplab(size = label_size, align = TRUE, linesize = 0.2, color = "black") +
   labs(title = paste("进化树 (", length(tree$tip.label), " 个菌株)")) +
   theme(
     plot.title = element_text(hjust = 0.5, size = 14, face = "bold"),
-    plot.margin = margin(10, 10, 10, 10, "mm")  # 调整边距避免标签被截断
+    plot.margin = margin(10, 10, 10, 10, "mm")
   )
-
-# 在plot窗口显示图形
 print(tree_plot)
-
-# 保存为PDF文件，允许较大尺寸
+# 保存为PDF
 ggsave(
   filename = output_file,
   plot = tree_plot,
@@ -41,26 +32,6 @@ ggsave(
   limitsize = FALSE  # 允许图形尺寸超过默认限制
 )
 
-message(paste("进化树已保存至:", file.path(getwd(), output_file)))
-
-
-# 提取树图中的所有节点数据（包含tip标签位置信息）
-tree_data <- tree_plot$data
-
-# 筛选出所有叶节点（tip）的数据（isTip为TRUE）
-tip_data <- tree_data[tree_data$isTip, ]
-
-# 按y坐标排序（y值越大，在图上位置越靠上）
-# 这就是图上从上到下的真实顺序
-strain_order <- tip_data[order(-tip_data$y), "label"]
-
-# 显示顺序
-cat("图上从上到下的真实菌株名顺序：\n")
-for (i in seq_along(strain_order)) {
-  cat(sprintf("%d: %s\n", i, strain_order[i]))
-}
-
-# 加载必要的包
 library(ape)
 library(ggplot2)
 library(ggtree)
@@ -69,7 +40,7 @@ library(dplyr)
 library(cowplot)
 library(reshape2)
 
-# 定义268个菌株的指定顺序（从上到下）
+# 定义268个菌株
 strain_order_268 <- c(
   "GCA_022136525", "GCA_019061315", "GCA_022137305", "BIOML-B1", "GCA_048490295", 
   "GCA_048396715", "APC918_95b", "GCA_934825545", "GCA_934841625", "GCA_934882155", 
@@ -123,14 +94,12 @@ strain_order_268 <- c(
   "GCA_022721015", "GCA_048423265", "GCA_048397125", "GCA_018367245", "GCA_047249675", 
   "GCA_046948715", "L2_6", "GCA_046996585", "GCA_046977165", "GCA_048394125"
 )
-
-# 定义颜色分组边界及对应的菌种名称
+# 定义颜色分组边界
 index1 <- which(strain_order_268 == "GCA_003482185")  # 第94个
 index2_start <- which(strain_order_268 == "P9238")    # 第95个
 index2_end <- which(strain_order_268 == "GCA_048171345")  # 第176个
 index3 <- which(strain_order_268 == "GCA_020687245")  # 第177个
-
-# 定义菌种-颜色映射（用于图例）
+# 定义菌种-颜色映射
 species_colors <- data.frame(
   Species = c("F.prausnitzii", "F.duncaniae", "F.longum"),
   Color = c("#984EA3", "#FF7F00", "#A65628"),
@@ -138,48 +107,39 @@ species_colors <- data.frame(
 )
 
 # 参数设置
-min_strains <- 78  # 最小菌株数阈值
-tree_file <- "mytree.newick"  # 进化树文件
-output_format <- "pdf"  # 输出格式
-show_labels <- FALSE  # 是否在树上显示标签
-
-# 读取进化树
+min_strains <- 78  # 最小菌株数
+tree_file <- "mytree.newick"
+output_format <- "pdf"
+show_labels <- FALSE
+# 读取进化树和基因存在缺失矩阵
 tree <- read.tree(tree_file)
-
-# 读取基因存在/缺失矩阵
 gene_data <- read.csv("gene_presence_absence.csv", stringsAsFactors = FALSE, check.names = FALSE)
 
-# 1. 提取菌株列（第15列到最后一列）
+# 处理使两图顺序对应
+# 1. 提取菌株列（第15列开始）
 strain_columns <- gene_data[, 15:ncol(gene_data), drop = FALSE]
-
-# 2. 将数据转换为二进制 (0=缺失, 1=存在)
+# 2. 0=缺失, 1=存在
 binary_matrix <- apply(strain_columns, c(1,2), function(x) ifelse(nchar(x) > 0, 1, 0))
 rownames(binary_matrix) <- gene_data$Gene
-
-# 3. 筛选基因（存在于至少min_strains个菌株中的基因）
+# 3. 筛选基因
 gene_counts <- rowSums(binary_matrix)
 filtered_matrix <- binary_matrix[gene_counts >= min_strains, , drop = FALSE]
-
 # 检查是否有符合条件的基因
 if (nrow(filtered_matrix) == 0) {
   stop(paste("未检测到存在于≥", min_strains, "个菌株中的基因，请调整参数或检查输入文件。"))
 }
-
 # 4. 按存在菌株数降序排序
 gene_order <- order(rowSums(filtered_matrix), decreasing = TRUE)
 filtered_matrix <- filtered_matrix[gene_order, , drop = FALSE]
-
 # 5. 按指定的268个菌株顺序调整矩阵
 common_strains <- intersect(colnames(filtered_matrix), strain_order_268)
 if (length(common_strains) == 0) {
   stop("矩阵与指定的菌株列表中没有共同的菌株名，请检查名称是否匹配。")
 }
-
-# 按指定顺序排列矩阵
+# 6. 按指定顺序排列矩阵
 final_order <- strain_order_268[strain_order_268 %in% common_strains]
 filtered_matrix <- filtered_matrix[, final_order, drop = FALSE]
-
-# 同步调整进化树
+# 7. 同步调整进化树
 tree <- keep.tip(tree, common_strains)
 constraint_data <- data.frame(taxa = factor(final_order, levels = final_order))
 constraint <- as.phylo(~taxa, data = constraint_data)
@@ -196,38 +156,34 @@ if (show_labels) {
   tree_plot <- tree_plot + 
     geom_tiplab(size = label_size, align = TRUE, linesize = 0.2)
 }
-
+# 绘制基因存在缺失矩阵
 # 准备矩阵绘图数据
 plot_data <- data.frame(
   Gene = rownames(filtered_matrix),
   filtered_matrix,
   check.names = FALSE
 ) %>% melt(id.vars = "Gene", variable.name = "Strain", value.name = "Presence")
-
 # 设置菌株顺序
 plot_data$Strain <- factor(plot_data$Strain, levels = final_order)
 plot_data$Gene <- factor(plot_data$Gene, levels = rownames(filtered_matrix))
-
-# 根据菌株分组定义存在基因的颜色和对应的菌种名称（用于图例映射）
+# 根据菌株分组定义存在基因的颜色和对应的菌种名称
 plot_data <- plot_data %>%
   mutate(
     Species = case_when(
-      Presence == 0 ~ NA_character_,  # 缺失基因不对应菌种
+      Presence == 0 ~ NA_character_,
       match(Strain, strain_order_268) <= index1 ~ "F.prausnitzii",
       match(Strain, strain_order_268) >= index2_start & 
         match(Strain, strain_order_268) <= index2_end ~ "F.duncaniae",
       match(Strain, strain_order_268) >= index3 ~ "F.longum"
     )
   )
-
-# 绘制矩阵图（带菌种颜色图例）
+# 绘制矩阵图
 matrix_plot <- ggplot(plot_data, aes(x = Gene, y = Strain, fill = Species)) +
   geom_raster() +
-  # 使用指定的颜色并设置缺失为白色
   scale_fill_manual(
     values = setNames(species_colors$Color, species_colors$Species),
-    na.value = "white",  # 缺失基因为白色
-    name = "Species"  # 图例标题
+    na.value = "white",
+    name = "Species"
   ) +
   theme_minimal() +
   theme(
@@ -236,14 +192,13 @@ matrix_plot <- ggplot(plot_data, aes(x = Gene, y = Strain, fill = Species)) +
     axis.title = element_blank(),
     panel.grid = element_blank(),
     plot.title = element_text(hjust = 0.5, size = 12),
-    legend.position = "bottom",  # 图例放在底部
-    legend.key.size = unit(1, "cm"),  # 图例颜色块大小
-    legend.text = element_text(size = 10)  # 图例文字大小
+    legend.position = "bottom",
+    legend.key.size = unit(1, "cm"),
+    legend.text = element_text(size = 10)
   ) +
   labs(title = paste("Genes Present in ≥", min_strains, "Strains\n(", 
                      nrow(filtered_matrix), " gene clusters)"))
-
-# 组合图形（增加底部空间容纳图例）
+# 组合图形
 combined_plot <- plot_grid(
   tree_plot,
   matrix_plot,

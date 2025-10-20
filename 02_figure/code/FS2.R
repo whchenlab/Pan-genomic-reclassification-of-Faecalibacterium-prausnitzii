@@ -1,23 +1,18 @@
-# 读取数据，更改文件路径
-ani <- read.table("ani_matrix_genus.txt", sep = "\t")
-
-# 加载所需库
 library(tidyr)
 library(pheatmap)
 library(RColorBrewer)
 
-# 长表转宽表，处理列
-ani_t <- ani[, -c(4, 5)]  # 移除不需要的列
+# 读取和预处理
+ani <- read.table("ani_matrix_genus.txt", sep = "\t")
+ani_t <- ani[, -c(4, 5)]
 ani_long <- ani_t %>%
-  spread(key = V1, value = V3)  # 转换为宽表格式
-
-# 设置行名并清理名称（去除.fna后缀）
+  spread(key = V1, value = V3)
 row.names(ani_long) <- ani_long$V2
 ani_long$V2 <- NULL
 rownames(ani_long) <- gsub(".fna", "", rownames(ani_long))
 colnames(ani_long) <- gsub(".fna", "", colnames(ani_long))
 
-# 定义函数：根据菌株名前缀获取对应的typestrain名称
+# Typestrain对应函数
 get_typestrain_name <- function(name) {
   if (startsWith(name, "A2165")) {
     return("F.duncaniae")
@@ -42,36 +37,28 @@ get_typestrain_name <- function(name) {
   } else if (startsWith(name, "F.gallinarum-JCM-17207")) {
     return("F.gallinarum")
   } else {
-    return(NA)  # 非typestrain返回NA
+    return(NA)  # 非Typestrain返回NA
   }
 }
 
-# 筛选出所有typestrain的名称
+# 筛选出Typestrain
 all_names <- union(rownames(ani_long), colnames(ani_long))
 typestrain_flags <- !is.na(sapply(all_names, get_typestrain_name))
 typestrain_names <- all_names[typestrain_flags]
-
-# 提取仅包含typestrain的矩阵
 ani_typestrain <- ani_long[
   rownames(ani_long) %in% typestrain_names,
   colnames(ani_long) %in% typestrain_names
 ]
-
-# 转换为矩阵格式以便处理
 ani_typestrain_mat <- as.matrix(ani_typestrain)
 
 # 处理双相记录不一致：取对称位置的较高值
 ani_typestrain_mat <- pmax(ani_typestrain_mat, t(ani_typestrain_mat))
 
-# 替换行名和列名为对应的typestrain名称
+# 绘图预处理
 name_mapping <- sapply(rownames(ani_typestrain_mat), get_typestrain_name)
 rownames(ani_typestrain_mat) <- name_mapping
 colnames(ani_typestrain_mat) <- name_mapping
-
-# 准备热图参数
 heatmap_colors <- colorRampPalette(brewer.pal(9, "Reds"))(100)
-
-# 处理显示数值：只显示大于95的值
 ani_display <- round(ani_typestrain_mat, 1)
 ani_display[ani_display < 95] <- NA
 display_numbers_matrix <- ani_display
