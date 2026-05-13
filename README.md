@@ -1,8 +1,8 @@
 # Pan-genomic-reclassification-of-Faecalibacterium-prausnitzii
 
-The code and key intermediate files in this repository 
+The code and key intermediate files in this repository correspond to the following manuscript:
 
-Pan-genomic reclassification of *Faecalibacterium prausnitzii* sensu lato reveals *F. longum* as a dominant, functionally distinct, and health-associated gut anaerobe. Reference click here
+Li et al. [期刊]. Pan-genomic reclassification of Faecalibacterium prausnitzii sensu lato reveals F. longum as a dominant, functionally distinct, and health-associated gut anaerobe. Reference click here
 
 Our work has conducted a taxonomic revision of species within *Faecalibacterium*, followed by functional harmonization under the newly established classification framework.
 
@@ -16,19 +16,17 @@ Our work has conducted a taxonomic revision of species within *Faecalibacterium*
 
   * Software requirement
 
+  * Citation
+
 ## Organization
 
-* 00_analysis_FUN contains scripts of all pipeline function.
+* 00_Analysis contains scripts of all pipeline function.
 
-* 00_FUN contains R scripts of all function.
+* 01_Main_Figure contains PDFs and Rscripts of the manuscript main figures. These are ordered by figure number.
 
-* 01_data contains data for analysis and plot.
+* 02_Supplement_Figure contains PDFs and Rscripts of the manuscript  supplement figures.&#x20;
 
-* 02_figure contains PDFs and Rscripts of the manuscript figures. These are ordered by figure number.
-
-* 03_table contains CSVs of the manuscript tables. These are ordered by table number.
-
-* 04_classifier contains database and script of a species classifier.
+* 03_Faeclass contains database and script of FaeClass species classifier.
 
 ## Software requirement
 
@@ -38,4 +36,8 @@ Our work has conducted a taxonomic revision of species within *Faecalibacterium*
 
 * R version: 4.4.1
 
+### Citation
 
+If you use FaeClass, please cite:
+
+Li et al. [期刊]. Pan-genomic reclassification of Faecalibacterium prausnitzii sensu lato reveals F. longum as a dominant, functionally distinct, and health-associated gut anaerobe. Reference click here

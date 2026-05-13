@@ -1,9 +1,0 @@
-Status	Bin_ID	Level	Completeness	Contamination	Strain_heterogeneity	Reason
-FAIL	13414_6_54	genomes	95.80	0.34	100.00	菌株异质性过高
-FAIL	DFI.9.14	genomes	100.00	1.16	100.00	菌株异质性过高
-FAIL	Fp1160	genomes	100.00	0.34	100.00	菌株异质性过高
-FAIL	MCC2041	genomes	99.32	0.68	100.00	菌株异质性过高
-FAIL	SSTS_Bg7063	genomes	97.96	2.27	40.00	菌株异质性过高
-FAIL	scaffold_AF31-10AC	genomes	94.61	0.00	0.00	完整性不足
-FAIL	scaffold_AM36-22BH	genomes	92.63	0.00	0.00	完整性不足
-FAIL	scaffold_TF07-33	genomes	93.06	0.00	0.00	完整性不足
